@@ -432,6 +432,9 @@ def mptt_before_update(mapper, connection, instance):
                 'rgt': parent_pos_right,
                 'is_parent': True
             }
+        elif left_sibling["lft"] > node_pos_left:
+            left_sibling["lft"] -= node_size
+            left_sibling["rgt"] -= node_size
 
         # insert subtree in exist tree
         instance.tree_id = parent_tree_id
