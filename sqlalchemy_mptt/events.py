@@ -32,7 +32,8 @@ def _insert_subtree(
         parent_level,
         node_level,
         left_sibling,
-        table_pk
+        table_pk,
+        audit_id
 ):
     # step 1: rebuild inserted subtree
     delta_lft = left_sibling['lft'] + 1
@@ -57,7 +58,8 @@ def _insert_subtree(
             and_(
                 table.c.rgt > delta_lft - 1,
                 table_pk.notin_(subtree),
-                table.c.tree_id == parent_tree_id
+                table.c.tree_id == parent_tree_id,
+                table.c.audit_id == audit_id
             )
         ).values(
             rgt=table.c.rgt + node_size,
@@ -231,6 +233,8 @@ def mptt_before_update(mapper, connection, instance):
     left_sibling = None
     left_sibling_tree_id = None
 
+    audit_id = instance.audit_id
+
     if hasattr(instance, 'mptt_move_inside'):
         mptt_move_inside = instance.mptt_move_inside
 
@@ -266,7 +270,8 @@ def mptt_before_update(mapper, connection, instance):
                 and_(
                     table.c.level == right_sibling_level,
                     table.c.tree_id == right_sibling_tree_id,
-                    table.c.lft < right_sibling_left
+                    table.c.lft < right_sibling_left,
+                    table.c.audit_id == audit_id,
                 )
             )
         ).fetchall()
@@ -325,8 +330,9 @@ def mptt_before_update(mapper, connection, instance):
             and_(
                 table.c.lft >= instance.left,
                 table.c.rgt <= instance.right,
-                table.c.tree_id == instance.tree_id
-            )
+                table.c.tree_id == instance.tree_id,
+                table.c.audit_id == audit_id,
+                )
         ).order_by(
             table.c.lft
         )
