@@ -12,7 +12,7 @@ def read(name):
 setup(
     name="sqlalchemy_mptt",
     version="0.2.5",
-    url="http://github.com/uralbash/sqlalchemy_mptt/",
+    url="https://github.com/dokka-ai/sqlalchemy_mptt",
     author="Svintsov Dmitry",
     author_email="sacrud@uralbash.ru",
     packages=["sqlalchemy_mptt"],
