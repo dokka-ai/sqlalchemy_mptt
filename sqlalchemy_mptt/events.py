@@ -69,13 +69,17 @@ def _insert_subtree(
     )
 
     # step 2: update key of right side
+    condition = [
+        table.c.rgt > delta_lft - 1,
+        table_pk.notin_(subtree),
+        table.c.tree_id == parent_tree_id,
+    ]
+    if audit_id:
+        condition.append(table.c.audit_id == audit_id)
     connection.execute(
         table.update(
             and_(
-                table.c.rgt > delta_lft - 1,
-                table_pk.notin_(subtree),
-                table.c.tree_id == parent_tree_id,
-                table.c.audit_id == audit_id,
+                *condition
             )
         ).values(
             rgt=table.c.rgt + node_size,
@@ -241,7 +245,9 @@ def mptt_before_update(mapper, connection, instance):
     right_sibling = None
     left_sibling_tree_id = None
 
-    audit_id = instance.audit_id
+    audit_id = None
+    if hasattr(instance, "audit_id"):
+        audit_id = instance.audit_id
 
     if hasattr(instance, "mptt_move_inside"):
         mptt_move_inside = instance.mptt_move_inside
@@ -274,14 +280,19 @@ def mptt_before_update(mapper, connection, instance):
         instance.parent_id = left_sibling_parent
         left_sibling = {"lft": left_sibling_left, "rgt": left_sibling_right, "is_parent": False}
 
+    where_condition = [
+        table.c.lft >= instance.left,
+        table.c.rgt <= instance.right,
+        table.c.tree_id == instance.tree_id,
+    ]
+    if audit_id:
+        where_condition.append(table.c.audit_id == audit_id)
+
     subtree = connection.execute(
         select([table_pk])
         .where(
             and_(
-                table.c.lft >= instance.left,
-                table.c.rgt <= instance.right,
-                table.c.tree_id == instance.tree_id,
-                table.c.audit_id == audit_id,
+                *where_condition
             )
         )
         .order_by(table.c.lft)
