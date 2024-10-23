@@ -52,10 +52,10 @@ def _insert_subtree(
 
     elif right_sibling:
         # step 1: rebuild inserted subtree
-        delta_lft = right_sibling["lft"] - 1
+        delta_lft = right_sibling["lft"]
         delta_rgt = delta_lft + node_size - 1
 
-        left_limit = delta_lft
+        left_limit = delta_lft - 1
     else:
         return
 
@@ -348,7 +348,6 @@ def mptt_before_update(mapper, connection, instance):
         elif right_sibling and right_sibling["lft"] > node_pos_left:
             right_sibling["lft"] -= node_size
             right_sibling["rgt"] -= node_size
-
 
         instance.tree_id = parent_tree_id
         _insert_subtree(
