@@ -104,6 +104,10 @@ def mptt_before_insert(mapper, connection, instance):
     db_pk = instance.get_pk_column()
     table_pk = getattr(table.c, db_pk.name)
 
+    audit_id = None
+    if hasattr(instance, "audit_id"):
+        audit_id = instance.audit_id
+
     if instance.parent_id is None:
         instance.left = 1
         instance.right = 2
@@ -134,10 +138,16 @@ def mptt_before_insert(mapper, connection, instance):
         ).fetchone()
 
         # Update key of right side
+        upd_condition = [
+            table.c.rgt >= parent_pos_right,
+            table.c.tree_id == parent_tree_id,
+        ]
+        if audit_id:
+            upd_condition.append(table.c.audit_id == audit_id)
+
         connection.execute(
             table.update(
-                and_(table.c.rgt >= parent_pos_right,
-                     table.c.tree_id == parent_tree_id)
+                and_(*upd_condition)
             ).values(
                 lft=case(
                     [
@@ -184,6 +194,10 @@ def mptt_before_delete(mapper, connection, instance, delete=True):
     ).fetchone()
     delta = rgt - lft + 1
 
+    audit_id = None
+    if hasattr(instance, "audit_id"):
+        audit_id = instance.audit_id
+
     if delete:
         mapper.base_mapper.confirm_deleted_rows = False
         connection.execute(
@@ -205,12 +219,17 @@ def mptt_before_delete(mapper, connection, instance, delete=True):
                     ELSE right_id
                 END
         """
+
+        upd_condition = [
+            table.c.rgt > rgt,
+            table.c.tree_id == tree_id
+        ]
+        if audit_id:
+            upd_condition.append(table.c.audit_id == audit_id)
+
         connection.execute(
             table.update(
-                and_(
-                    table.c.rgt > rgt,
-                    table.c.tree_id == tree_id
-                )
+                and_(*upd_condition)
             ).values(
                 lft=case(
                     [
